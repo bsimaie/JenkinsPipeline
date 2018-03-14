@@ -72,6 +72,45 @@ pipeline {
         }
     }
 
+    stage('Deploy to production') {
+      steps {
+
+        //Send email to test lead, release manager
+        //READY FOR APPROVAL (will expire in 24 hours)
+        timeout(time:1, unit:"DAYS"){
+          input message: 'WARNING: Deploy to LIVE production'
+        }
+
+        echo 'Deploy to production environment'
+
+        // Launch tomcat
+        bat """
+          cd ${params.server}prod\\bin
+          startup
+        """
+
+        // Code to move WAR to Tomcat
+        bat "xcopy /y freddie-app\\webapp\\target\\webapp.war ${params.server}prod\\webapps"
+
+      }
+      post {
+        success {
+          // Send email to successful deployment to production
+          emailNotification('Success! Deployed to production')
+        }
+        failure {
+          // Send email to notify failed
+          emailNotification('FAILED to deploy to production')
+        }
+        abort{
+          // Send email to notify REJECTED
+          echo 'deployment REJECTED'
+        }
+
+      } //end of post
+
+    } //end of stage
+
 
   } //end of stages
 
